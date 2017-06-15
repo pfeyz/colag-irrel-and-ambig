@@ -90,7 +90,7 @@ def ambiguate_param(vals):
 
 def ambiguate_str(irrelevated_strs):
     """Given a list of irrelevated_strings, return a single string that includes
-    irrelevance markers.
+    ambiguous markers (*).
 
     """
     return ''.join([ambiguate_param(v)
