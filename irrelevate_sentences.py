@@ -102,6 +102,11 @@ def ambiguate(colag, sentence):
                          for grammar, tree in colag.licensors(sentence))
 
 def main(db_filename):
+    """Writes per-sentence ambiguous/irrelevance strings to sdtout. caches Colag
+    object to disk as a pickle on first run and reads from disk during
+    subsequent runs.
+
+    """
     cache_fn = 'cached/{}.pkl'.format(db_filename)
     try:
         with open(cache_fn, 'rb') as handle:
@@ -113,7 +118,9 @@ def main(db_filename):
         print('pickling db')
         with open(cache_fn, 'wb') as handle:
             pickle.dump(colag, handle)
+
+    # the actual output
     for sent in colag.sentences:
-        print(sent, '\t', amb_str(colag, sent))
+        print(sent, '\t', ambiguate(colag, sent))
 
 main(sys.argv[1])
