@@ -37,15 +37,18 @@ class Colag:
         `sentence`."""
         return self.sentence_licensors[sentence]
 
+def grammar_to_str(grammar):
+    return format(grammar, '013b')
+
 def sister_grammars(grammar):
     """ Returns a list of all the grammars that differ from `grammar` by a single bit.
 
     >>> grammar = 8128
 
-    >>> format(grammar, '013b')
+    >>> grammar_to_str(8128)
     '1111111000000'
 
-    >>> [format(x, '013b') for x in sister_grammars(grammar)]
+    >>> [grammar_to_str(x) for x in sister_grammars(grammar)]
     ['1111111000001', '1111111000010', '1111111000100', '1111111001000', '1111111010000',
      '1111111100000', '1111110000000', '1111101000000', '1111011000000', '1110111000000',
      '1101111000000', '1011111000000', '0111111000000']
@@ -119,8 +122,5 @@ def main(db_filename):
         with open(cache_fn, 'wb') as handle:
             pickle.dump(colag, handle)
 
-    # the actual output
-    for sent in colag.sentences:
-        print(sent, '\t', ambiguate(colag, sent))
-
-main(sys.argv[1])
+    return [(sent, ambiguate(colag, sent))
+            for sent in colag.sentences]
