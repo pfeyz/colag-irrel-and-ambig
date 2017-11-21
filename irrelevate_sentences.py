@@ -1,126 +1,96 @@
 import csv
-import pickle
-import sys
-from collections import defaultdict
 
 NUM_PARAMS = 13
 
-class Colag:
-    """ Represents the COLAG domain database. """
-    def __init__(self, database_fn):
-        self.parses = defaultdict(lambda: defaultdict(set))
-        self.sentence_licensors = defaultdict(set)
-        self.sentences = set()
+def read_colag_tsv(filename):
+    """Returns a dictionary with sentence ids as keys. Each value is a set of
+    grammars IDs - the grammars that generate that sentence.
 
-        with open(database_fn, 'r') as handle:
-            reader = csv.reader(handle, delimiter='\t')
-            for grammar, sentence, tree in reader:
-                grammar, sentence, tree = [int(x) for x in (grammar, sentence, tree)]
-                self.parses[grammar][sentence].add(tree)
-                self.sentence_licensors[sentence].add((grammar, tree))
-                self.sentences.add(sentence)
-
-        self.parses = dict(self.parses)
-        self.sentence_licensors = dict(self.sentence_licensors)
-        grammars = self.parses.keys()
-        self.illegal_grammars = {g for g in range(2**NUM_PARAMS)
-                                 if g not in grammars}
-
-        print(len(self.parses), len(self.illegal_grammars))
-
-    def parse(self, grammar, sentence):
-        """ Returns all parses (treeids) of `sentence` by `grammar` """
-        return self.parses.get(grammar, {}).get(sentence, [])
-
-    def licensors(self, sentence):
-        """Returns a list of (grammar, tree) tuples for every possible parse of
-        `sentence`."""
-        return self.sentence_licensors[sentence]
-
-def grammar_to_str(grammar):
-    return format(grammar, '013b')
-
-def sister_grammars(grammar):
-    """ Returns a list of all the grammars that differ from `grammar` by a single bit.
-
-    >>> grammar = 8128
-
-    >>> grammar_to_str(8128)
-    '1111111000000'
-
-    >>> [grammar_to_str(x) for x in sister_grammars(grammar)]
-    ['1111111000001', '1111111000010', '1111111000100', '1111111001000', '1111111010000',
-     '1111111100000', '1111110000000', '1111101000000', '1111011000000', '1110111000000',
-     '1101111000000', '1011111000000', '0111111000000']
     """
+    colag = {}
+    with open(filename) as handle:
+        reader = csv.reader(handle, delimiter='\t')
+        for grammar, sentence, _ in reader:
+            grammar = int(grammar)
+            sentence = int(sentence)
+            try:
+                db[sentence].add(grammar)
+            except KeyError:
+                db[sentence] = {grammar}
+    return colag
 
-    return [grammar ^ (1 << index)
-            for index in range(NUM_PARAMS)]
-
-def param_status(index, grammar):
+def get_param_value(index, grammar):
     """Return the status (0 or 1) of parameter number `index` in `grammar`,
     zero-indexed.
 
-    >>> param_status(2, int('0100', 2))
+    >>> get_param_value(2, int('0100', 2))
     1
 
-    >>> param_status(2, int('0100', 3))
+    >>> get_param_value(2, int('0100', 3))
     0
 
     """
 
     return int(bool((1 << index) & grammar))
 
-def irrelevate(colag, sentence, grammar, tree):
-    """Returns the irrelevance string (actually a list of strings) for a particular
-    parse of a sentence in a grammar.
+def toggled(param, grammar):
+    """ Returns grammar with parameter number `parameter` toggled """
+    return grammar ^ (1 << param)
+
+def mark_unambiguous_params(colag, sentence):
+    """Returns a 13-item list of strings, each item either 0, 1 or ~.
+
+    For a parameter Pi, if every grammar in colag that generates `sentence` has
+    Pi set to the same value v (0 or 1), then the returned list will have its
+    i-th element set to v. Otherwise, it will be ~.
 
     """
-    return ['~' if (tree in colag.parse(sister_grammar, sentence)
-                    or sister_grammar in colag.illegal_grammars)
-            else param_status(param_num, grammar)
-            for param_num, sister_grammar in enumerate(sister_grammars(grammar))]
 
-def ambiguate_param(vals):
-    """Given all the observed values of a given parameter for a sentence (0, 1 or
-    ~), return a single parameter, one of 0, 1, ~ or *. """
-    if '~' in vals:
-        return '~'
-    if len(set(vals)) == 1:
-        # unambiguous
-        return str(vals[0])
-    return '*'
+    param_list = [None for _ in range(13)]
+    generators = colag[sentence]
+    for i in range(13):
+        values = set(get_param_value(i, gram) for gram in generators)
+        assert len(values) > 0
+        if len(values) == 1:
+            param_list[i] = str(values.pop())
+        else:
+            param_list[i] = '~'
 
-def ambiguate_str(irrelevated_strs):
-    """Given a list of irrelevated_strings, return a single string that includes
-    ambiguous markers (*).
+    return param_list
 
-    """
-    return ''.join([ambiguate_param(v)
-                    for v in zip(*irrelevated_strs)])
 
-def ambiguate(colag, sentence):
-    """Returns an ambiguated string, containing 0, 1, ~ or *, for a given sentence."""
-    return ambiguate_str(irrelevate(colag, sentence, grammar, tree)
-                         for grammar, tree in colag.licensors(sentence))
+def mark_irrelevant_params(colag, disallowed, sentence):
+    """Returns 13-item list containing 0, 1, ~ or *"""
+    relstr = mark_unambiguous_params(colag, sentence)
+    for param, val in enumerate(relstr):
+        assert val in ['~', '0', '1'], val
+        if val != '~':
+            continue
+        generators = colag[sentence]
+        for generator in colag[sentence]:
+            minimal_pair = toggled(param, generator)
+            # TODO: is this "and" correct?
+            if minimal_pair not in generators and minimal_pair not in disallowed:
+                relstr[param] = '*'
+                break
+    return relstr
 
-def main(db_filename):
-    """Writes per-sentence ambiguous/irrelevance strings to sdtout. caches Colag
-    object to disk as a pickle on first run and reads from disk during
-    subsequent runs.
+def main():
+    colag = read_colag_tsv('COLAG_2011_ids.txt')
+    grammars = set([g
+                    for grams in colag.values()
+                    for g in grams])
 
-    """
-    cache_fn = 'cached/{}.pkl'.format(db_filename)
-    try:
-        with open(cache_fn, 'rb') as handle:
-            print('loading pickled db')
-            colag = pickle.load(handle)
-    except FileNotFoundError:
-        print('constructing db')
-        colag = Colag(db_filename)
-        print('pickling db')
-        with open(cache_fn, 'wb') as handle:
-            pickle.dump(colag, handle)
+    assert len(colag) == 48077, 'expected 48077 sentences in colag tsv'
+    assert len(grammars) == 3072, 'expected 3072 grammars in colag tsv'
 
-    return [(sent, ambiguate(colag, sent))
-            for sent in colag.sentences]
+    # the grammars that are not included in colag.
+    disallowed = {g for g in range(2**NUM_PARAMS)
+                  if g not in grammars}
+
+    for sentence in sorted(colag):
+        print(sentence,
+              ''.join(mark_irrelevant_params(colag, disallowed, sentence)))
+
+
+main()
