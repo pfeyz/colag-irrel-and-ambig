@@ -14,9 +14,9 @@ def read_colag_tsv(filename):
             grammar = int(grammar)
             sentence = int(sentence)
             try:
-                db[sentence].add(grammar)
+                colag[sentence].add(grammar)
             except KeyError:
-                db[sentence] = {grammar}
+                colag[sentence] = {grammar}
     return colag
 
 def get_param_value(index, grammar):
