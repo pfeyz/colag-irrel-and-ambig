@@ -52,15 +52,15 @@ def genRelevanceStr(Gset, n, SID, NGGSet):
 
     # List of ambig/irrelevant P's
     irrList = []
-    
+
     # COMPUTE 1 and 0 (unambiguous)
-    Glist = list(Gset) # convert to list to use indices 
+    Glist = list(Gset) # convert to list to use indices
 
     # for all parameters
     for i in range(n):
 
          compareChar = Glist[0][i] # compareChar will be 0 or 1 based on first G (Glist[0])
-         
+
          j = 1 # set j for second G in list
          Glen = len(Glist)
 
@@ -70,35 +70,33 @@ def genRelevanceStr(Gset, n, SID, NGGSet):
            if (Glist[j][i] != compareChar):
                pValChange = True
            else:
-               j += 1                 
+               j += 1
          #Post condition: j is past Glist - there was no pValChange
                         # j < len(Glist) - there was at least one pValChange
-         if j == Glen:  
+         if j == Glen:
            retVal = retVal + compareChar
          else:
            retVal = retVal +"~"
            irrList.append(i) # save indicies where P is ambig or irrel
 
+        # Consider all ~'s and confirm they are irrelvant if not overwrite ~ with *
 
-""" Consider all ~'s and confirm they are irrelvant if not overwrite ~ with *
+        # This is Newer Algorithm from Irrelevance and Ambiguity - 2017. Dated 11/21/17 in file.
 
-This is Newer Algorithm from Irrelevance and Ambiguity - 2017. Dated 11/21/17 in file.
+        # Gdisallowed = all CoLAG grammars that are disallowed by parameter constraints
+        # Given sentence pattern Si
+        # Gset = all grammars that generate Si
+        # Relstr = set 0 and 1 for unambiguous values, set ~ elsewhere
 
-Gdisallowed = all CoLAG grammars that are disallowed by parameter constraints
-Given sentence pattern Si
-Gset = all grammars that generate Si
-Relstr = set 0 and 1 for unambiguous values, set ~ elsewhere
+        # For all Pi (i = 1 to 13, where Relstr[i] == ~):
+        #         For all Gj in Gset:
+        #                 Gnew = Gj toggled Pi  ##(Gnew and Gj are minimal pairs with only Pi toggled)
+        #                 If Gnew notin (Gset or Gdisallowed):
+        #                         Relstr[i] = *
 
-For all Pi (i = 1 to 13, where Relstr[i] == ~):
-	For all Gj in Gset:
-		Gnew = Gj toggled Pi  ##(Gnew and Gj are minimal pairs with only Pi toggled)
-		If Gnew notin (Gset or Gdisallowed):
-			Relstr[i] = *
-"""
-           
     # For all Pi (i = 1 to 13, where Relstr[i] == ~):
     for i in irrList:
-        
+
     #    For all G in Gset:
          for G in Gset:
 
@@ -112,143 +110,92 @@ For all Pi (i = 1 to 13, where Relstr[i] == ~):
     #	     If Gnew notin (Gset or Gdisallowed):
     #           Relstr[i] = *
              if Gnew not in Gset and Gnew not in NGGSet:
-                retVal = retVal[:i] + "*" + retVal[i+1:] 
+                retVal = retVal[:i] + "*" + retVal[i+1:]
 
     return retVal
 
+def main():
+    #*******************
+    #*  MAIN
+    #***********************
 
-""" OLD VERSION
+    print("Creating sent and struct tables ...")
+    begin = datetime.datetime.now()
 
-    # COMPUTE irrelevance
-    # for parameters pi
-    #  for G in Glist:
-    #   if minimal pair of G not found
-    #        found = false
-    #        break # pi is relevant for some tree structures
-    #   
-
-    ## VERY VERY SLOW CODE (what follows): Looks at both A and B for
-    ##  minimal pairs, as well as B and A. What a wasted. But I think
-    ##  it works.
+    print()
 
 
-    for i in irrList:
-        
-        minPairCnt = 0  
-        lset  = set(Gset) # local Gset
-        llist = list(Glist) # local Glist
-  
-        for G in Glist:
+    # Create lookup dictionaries:
 
-             if G[i]=='1':
-                 bit = '0'
-             else:
-                 bit = '1'
+    #   key: sentID ; value: set of grammars that generate sentID
+    sentLookupTable     = defaultdict(set)
 
-             targG = G[:i] + bit + G[i+1:]
-             #print i, "G:     ", G, "\t", int(G,2)
-             #print i, "targG: ", targG, "\t", int(targG,2)
-             
-             if targG not in lset and targG not in NGGSet:
-                 found = False # minimal pair not found so pi is relevant
-#                 print "Min pair NOT found" 
-                 break
-             else: # found a minimal pair
-#                 print "Min pair FOUND!"
-                 minPairCnt += 1
-                 
-        
-        if minPairCnt == len(llist):
-                 retVal = retVal[:i] + "~" + retVal[i+1:]
-     
+    # key: sentID; value: illoc+" "+sent
+    sentTable       = defaultdict(str)
 
 
-#        xxx = raw_input("PAUSE")    
-            
-    return retVal
-"""
+    runNum = 0
+    SentFile = open(LD_Sents_only_File,"r")
+    for line in SentFile:
+        line = line.rstrip()
+        [sentIDstr, illocStr, sentStr] = line.split("\t")
+        [sentID, illoc, sent] = [int(sentIDstr), illocStr, sentStr]
 
-#*******************
-#*  MAIN
-#***********************
+        sentTable[sentID] = illoc +"\t"+ sent
 
-print "Creating sent and struct tables ..."
-begin = datetime.datetime.now()
+    # Disallowed Grammars
+    NG_Grammars = set()
 
-print
+    NGGFile = open(LD_NG_GrammIDs_File,"r")
+    for line in NGGFile:
+        NG_Grammars.add(int(line.rstrip()))
+    NGGFile.close()
 
+    File = open(LD_File,"r")
+    OUT  = open(OUT_File,"w")
+    for line in File:
+      line = line.rstrip()
 
-# Create lookup dictionaries:
+      # grab the ID's - all are int's so map works
+      [grammID, sentID, structID] = map(int, line.split("\t"))
 
-#   key: sentID ; value: set of grammars that generate sentID
-sentLookupTable     = defaultdict(set)
+      # setup dictionary to look up all 13-bit grammars that generate sentID
+      sentLookupTable[sentID].add(binary(grammID,13))
 
-# key: sentID; value: illoc+" "+sent
-sentTable       = defaultdict(str)
-
-
-runNum = 0
-SentFile = open(LD_Sents_only_File,"r")
-for line in SentFile:
-    line = line.rstrip()
-    [sentIDstr, illocStr, sentStr] = line.split("\t")
-    [sentID, illoc, sent] = [int(sentIDstr), illocStr, sentStr]
-
-    sentTable[sentID] = illoc +"\t"+ sent
-
-# Disallowed Grammars
-NG_Grammars = set()
-
-NGGFile = open(LD_NG_GrammIDs_File,"r")
-for line in NGGFile:
-    NG_Grammars.add(int(line.rstrip()))
-NGGFile.close()    
-    
-File = open(LD_File,"r")
-OUT  = open(OUT_File,"w")
-for line in File:
-  line = line.rstrip()
-
-  # grab the ID's - all are int's so map works
-  [grammID, sentID, structID] = map(int, line.split("\t"))
-
-  # setup dictionary to look up all 13-bit grammars that generate sentID
-  sentLookupTable[sentID].add(binary(grammID,13))
-  
-  if runNum % 1000000 == 0:
-     end = datetime.datetime.now()
-     elapsed = end - begin
-     print "Sent num: ",  runNum, " took ", str(elapsed)
-  runNum +=1
-
-print
-print "Generating relevance strings ..."
-print
-
-## Generate relevance strings
-for sentID, Gset in sentLookupTable.items():
-
-    # sentID = structSentTable[structID]
-    sent   = sentTable[sentID]
-    outStr = str(sentID)+"\t"+sent+"\t"+genRelevanceStr(Gset, 13, sentID, NG_Grammars)+"\n"
-    OUT.write(outStr)
-
-    if sentID % 10000 == 0:       
+      if runNum % 1000000 == 0:
         end = datetime.datetime.now()
         elapsed = end - begin
-        print sentID, " Elapsed time: ", str(elapsed)
+        print("Sent num: ",  runNum, " took ", str(elapsed))
+      runNum +=1
 
-end = datetime.datetime.now()
-elapsed = end - begin
-print sentID, " Elapsed time: ", str(elapsed)
+    print()
+    print("Generating relevance strings ...")
+    print()
 
-OUT.close()
-File.close()
-SentFile.close()
-end = datetime.datetime.now()
-elapsed = end - begin
-print "Elapsed time: ", str(elapsed)
+    ## Generate relevance strings
+    for sentID, Gset in sentLookupTable.items():
 
+        # sentID = structSentTable[structID]
+        sent   = sentTable[sentID]
+        outStr = str(sentID)+"\t"+sent+"\t"+genRelevanceStr(Gset, 13, sentID, NG_Grammars)+"\n"
+        OUT.write(outStr)
 
+        if sentID % 10000 == 0:
+            end = datetime.datetime.now()
+            elapsed = end - begin
+            print(sentID, " Elapsed time: ", str(elapsed))
 
+    end = datetime.datetime.now()
+    elapsed = end - begin
+    print(sentID, " Elapsed time: ", str(elapsed))
 
+    OUT.close()
+    File.close()
+    SentFile.close()
+    end = datetime.datetime.now()
+    elapsed = end - begin
+    print("Elapsed time: ", str(elapsed))
+
+if __name__ == "__main__":
+   #main()
+    pass
