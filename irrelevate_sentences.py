@@ -34,7 +34,13 @@ def get_param_value(index, grammar):
     return int(bool((1 << index) & grammar))
 
 def toggled(param, grammar):
-    """ Returns grammar with parameter number `parameter` toggled """
+    """ Returns grammar with parameter number `parameter` toggled
+
+    >>> gram = int('0100', 2)
+    >>> t = toggled(3, gram)
+    >>> "{0:b}".format(t)
+    '1100'
+    """
     return grammar ^ (1 << param)
 
 def mark_unambiguous_params(colag, sentence):
@@ -93,4 +99,5 @@ def main():
               ''.join(mark_irrelevant_params(colag, disallowed, sentence)))
 
 
-main()
+if __name__ == '__main__':
+    main()
