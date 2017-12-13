@@ -27,16 +27,16 @@
 from collections import defaultdict
 import datetime
 
-LD_Sents_only_File = "/Users/Wm1/Desktop/RelevanceProject/COLAG_2011_sents.txt"
+LD_Sents_only_File = "./COLAG_2011_sents.txt"
 # CoLAG sentIDs, and Illoc and sent strings only
 
-LD_NG_GrammIDs_File = "/Users/Wm1/Desktop/RelevanceProject/NG_GrammIDs.txt"
+LD_NG_GrammIDs_File = "./NG_GrammIDs.txt"
 # No Good, disallowed grammar IDs due to parameter constraints in CoLAG
 
-LD_File = "/Users/Wm1/Desktop/RelevanceProject/COLAG_2011_ids.txt" #COLAG_2011_ids.txt"
+LD_File = "./COLAG_2011_ids.txt" #COLAG_2011_ids.txt"
 # The CoLAG Domain, 3 columns, Grammar ID, Sent ID and Structure ID
 
-OUT_File = "/Users/Wm1/Desktop/RelevanceProject/COLAG_2011_sentID_rel_new.txt" # COLAG_2011_ids_rel.txt"
+OUT_File = "./COLAG_2011_sentID_rel_new.txt" # COLAG_2011_ids_rel.txt"
 
 def binary(n, digits=8):
     return "{0:0>{1}}".format(bin(n)[2:], digits)
@@ -197,5 +197,4 @@ def main():
     print("Elapsed time: ", str(elapsed))
 
 if __name__ == "__main__":
-   #main()
-    pass
+    main()
