@@ -148,7 +148,7 @@ def main():
 
     NGGFile = open(LD_NG_GrammIDs_File,"r")
     for line in NGGFile:
-        NG_Grammars.add(int(line.rstrip()))
+        NG_Grammars.add('{0:013b}'.format(int(line.rstrip())))
     NGGFile.close()
 
     File = open(LD_File,"r")
