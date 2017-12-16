@@ -36,9 +36,12 @@ Sent_Dist_File = "/Users/Wm1/Desktop/CoLAG_Research/YangPython/COLAG_2011_sents_
 
 Out_Data_File = "/Users/Wm1/Desktop/CoLAG_Research/YangPython/OUTDATA.csv"
 
+Irrelevance_String_File = "./irrelevance-output.txt"
+
 
 n = 13 # number of parameters
 r = .0005  # learning rate
+cr = .0001 # conservative learning rate
 trials = 100  # number of simulated learning trials to run
 max_sents =  5000000 # max number of sents before ending a trial
 B = 5 # batch threshold if used
@@ -147,13 +150,19 @@ def setupLtargAndSentenceFrequencies() :
 
    
 
-def reward() :  # CHECK
+
+def reward(relstr) :  # CHECK
   global Wcurr, Gcurr
   for i in range(n):
+    if relstr[i] == '~':
+        continue
+    update_rate = r
+    if relstr[i] == '*':
+        update_rate = cr
     if Gcurr[i]==0:
-      Wcurr[i] -= r*Wcurr[i];
+      Wcurr[i] -= update_rate * Wcurr[i];
     else:
-      Wcurr[i] += r*(1.0-Wcurr[i]);
+      Wcurr[i] += update_rate * (1.0-Wcurr[i]);
 
 def punish() : # CHECK
   global Wcurr, Gcurr
