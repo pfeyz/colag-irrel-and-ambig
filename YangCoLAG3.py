@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+
+from __future__ import print_function
+
 ####
 # WORKs: That is, duplicates Galana results
 #######
@@ -204,6 +207,12 @@ def readRelevanceStrings(filename):
       sid = int(sid)
       relDict[sid] = irrelStr
   return relDict
+
+# use raw_input for python2, input for python3
+try:
+    input = raw_input
+except NameError:
+    pass
 
 ############################################
 ## MAIN MAIN MAIN reward only learner
