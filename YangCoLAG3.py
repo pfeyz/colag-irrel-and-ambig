@@ -36,6 +36,7 @@
 from collections import defaultdict
 import random
 import datetime
+import csv
 
 ##########
 # Globals - Note "grammars" and "sentences" are globally stored as integer "ids"
@@ -56,6 +57,7 @@ CoLAG_Gs = {} # Wm note: This should probably be a set of grammar IDs
 
 n = 13 # number of parameters
 r = .0005  # learning rate
+cr = .0001  # conservative learning rate
 
 trials = 10 # number of simulated learning trials to run
 max_sents =  50000 # max number of sents before ending a trial
@@ -68,9 +70,10 @@ Ltarg = [] # list of sentences (or actually sentIDs) licensed by Gtarg
 
 
 # Input file, the CoLAG Domain, 3 columns, Grammar ID, Sent ID and Structure ID
-LD_File = "/Users/Wm1/Desktop/CoLAG_Research/YangPython/COLAG_2011_ids.txt"
+LD_File = "./william-code/COLAG_2011_ids.txt"
+Irrelevance_String_File = "./irrelevance-output.txt"
 
-Out_Data_Path            = "/Users/Wm1/Desktop/CoLAG_Research/YangPython/relevance_project/"
+Out_Data_Path            = "./"
 Out_Data_File_base       = "OUTDATA_REL"
 Out_Data_Date_Time_stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 Out_Data_File = Out_Data_Path+Out_Data_File_base+Out_Data_Date_Time_stamp+".csv"
@@ -106,19 +109,23 @@ def setupLD() :
     
     LDsents  [grammID].add(sentID) # key:int, value:set of ints
 
-   
-def reward(relevanceStr) : # current code ignores relevanceStr  
+
+def reward(relstr):
   global Wcurr, Gcurr
   for i in range(n):
-#  something like this will take relevance into account
-#    if relevanceStr[i] == "~": # parameter i is irrelevant for the current sentence/parsetree
-#      pass # do nothing
-#    else:
-      if Gcurr[i]=='0':
-        Wcurr[i] -= r*Wcurr[i]
-      else:
-        Wcurr[i] += r*(1.0-Wcurr[i])
-        
+    if relstr[i] == '~':
+      # param is irrelevant, ignore it.
+      continue
+    update_rate = r
+    if relstr[i] == '*':
+        # param is ambiguous, be conservative.
+        update_rate = cr
+    if Gcurr[i]=='0':
+      Wcurr[i] -= update_rate * Wcurr[i];
+    else:
+      Wcurr[i] += update_rate * (1.0-Wcurr[i]);
+
+
 def converged():
   global Wcurr
   for i in range(n):
@@ -189,6 +196,15 @@ def csvOutput(File, targ, run, cnt, G, W):
     outStr = str(targ)+","+str(run)+","+str(cnt)+","+str(bin2Dec(G))+","+"'"+Gout+","+Wout+"\n"
     File.write(outStr)
 
+def readRelevanceStrings(filename):
+  relDict = {}
+  with open(filename) as fh:
+    for line in fh:
+      sid, irrelStr = line.split()
+      sid = int(sid)
+      relDict[sid] = irrelStr
+  return relDict
+
 ############################################
 ## MAIN MAIN MAIN reward only learner
 ############################################
@@ -219,6 +235,8 @@ def run():
     GTARGIDS = [611, 3856, 2253, 584]
     
     global Ltarg
+
+    relevanceStrDict = readRelevanceStrings('./irrelevance-output.txt')
 
     for targIdx in range(1): # only Enlgish
         
@@ -261,7 +279,7 @@ def run():
               if s in LDsents[GcurrID]: # LD[GcurrID] is a set of sentIDs 
                   
                   # grab relevance string of s
-                  relevanceStr = "~~~~~~~~~~~~~" # dummy stringtes 
+                  relevanceStr = relevanceStrDict[s]
                   #   picks a parse tree that generates s given Gcurr
                   #   the 'parser' returns a string indicating which parameters were irrelevant
                   #   in terms of building the parse tree
