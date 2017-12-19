@@ -212,13 +212,13 @@ def run():
 
     global Wcurr, Gcurr, OUTDATA
 
-    print "Setting up ..."
+    print("Setting up ...")
 
     OUTDATA = open(Out_Data_File,'w')
 
-    Notes = raw_input("Enter notes for this run: ")
+    Notes = input("Enter notes for this run: ")
 
-    print "Working ..."
+    print("Working ...")
 
     headerOutput(OUTDATA, Notes)
     
@@ -244,8 +244,8 @@ def run():
         GtargID = GTARGIDS[targIdx]     # GtargID is a decimal representation of Gtarg
         Ltarg   = list(LDsents[GtargID]) # Ltarg is a list of sentIDs
 
-        overallStart = datetime.datetime.now()    
-        print "Running ..."
+        overallStart = datetime.datetime.now()
+        print("Running ...")
 
         for runNum in range(trials):
           start = datetime.datetime.now()
@@ -283,10 +283,11 @@ def run():
                   #   picks a parse tree that generates s given Gcurr
                   #   the 'parser' returns a string indicating which parameters were irrelevant
                   #   in terms of building the parse tree
-                  #  DEGUG: print s, relevanceStr
+                  #  DEGUG: print(s, relevanceStr)
                   reward(relevanceStr)
               else:
-                  pass # print "GcurrID: ", GcurrID
+                  pass # print("GcurrID: ", GcurrID)
+
 
                   
 
@@ -298,13 +299,12 @@ def run():
           elapsed = end - start
           overallElapsed = end - overallStart 
           if runNum % 1 == 0:
-            print "GtargID: ", GtargID, "RUN: ", runNum, "took", str(elapsed), "Overall so far: ", overallElapsed
+            print("GtargID: ", GtargID, "RUN: ", runNum, "took", str(elapsed), "Overall so far: ", overallElapsed)
 
 
 run()
 
-   
+
 OUTDATA.close()
 
-print "Done."
-
+print("Done.")
