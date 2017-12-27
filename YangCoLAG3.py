@@ -184,7 +184,7 @@ def bin2Dec(bList): # bList is a list of 1's and 0's
     return int(binStr,2)     
  
 def headerOutput(File, NotesP):
-    headerstr = "Learning rate:" + str(r) + ", Threshold:" + str(threshold) + ", Note: " + NotesP + "\n"
+    headerstr = "Learning rate:" + str(r) + ", Threshold:" + str(threshold) + ", Note: " + NotesP + ",CovergedID"+","+"\n"
     File.write(headerstr) 
 
 def csvOutput(File, targ, run, cnt, G, W):
