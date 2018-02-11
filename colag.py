@@ -119,7 +119,7 @@ class Colag:
         return irrelevence_array(self.grammar_irr[g1])
 
 def distance_simulation():
-    colag = Colag.from_tsvs('../irrel-ambig-mess/COLAG_2011_ids.txt', './irrelevance-output.txt')
+    colag = Colag.from_tsvs('./COLAG_2011_ids.txt', './irrelevance-output.txt')
     while True:
         rate = random.random()
         g1 = random.randint(0, 2**13)
