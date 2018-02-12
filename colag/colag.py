@@ -171,6 +171,10 @@ def main():
 
     args = parser.parse_args()
 
+    if 'func' not in args:
+        parser.print_help()
+        return
+
     args.func(**dict((key, val)
                      for key, val in args.__dict__.items()
                          if key != 'func'))
