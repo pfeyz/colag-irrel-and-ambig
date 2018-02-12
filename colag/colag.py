@@ -8,6 +8,9 @@ from scipy.spatial import distance
 
 TRIGGER_VEC_ORDER = '01*~'
 
+COLAG_TSV = '../data/COLAG_2011_ids.txt'
+IRRELEVANCE_OUTPUT = '../data/irrelevance-output.txt'
+
 def grammar_str(g):
     return '{:013b}'.format(g)
 
@@ -119,7 +122,7 @@ class Colag:
         return irrelevence_array(self.grammar_irr[g1])
 
 def distance_simulation():
-    colag = Colag.from_tsvs('./COLAG_2011_ids.txt', './irrelevance-output.txt')
+    colag = Colag.from_tsvs(COLAG_TSV, IRRELEVANCE_OUTPUT)
     while True:
         rate = random.random()
         g1 = random.randint(0, 2**13)
@@ -141,7 +144,7 @@ def distance_simulation_stdout(n=None):
         print(', '.join(str(item[key]) for key in keys))
 
 def grammar_trigger_vectors():
-    colag = Colag.from_tsvs('../irrel-ambig-mess/COLAG_2011_ids.txt', './irrelevance-output.txt')
+    colag = Colag.from_tsvs(COLAG_TSV, IRRELEVANCE_OUTPUT)
     for g in colag.grammars:
         yield [g] + colag.trigger_vector(g)
 
