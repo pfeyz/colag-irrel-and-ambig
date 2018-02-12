@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+# NOTE: this file was originally named YangCoLAG3.py
+
 from __future__ import print_function
 
 ####
