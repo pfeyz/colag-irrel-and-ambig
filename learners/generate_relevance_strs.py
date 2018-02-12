@@ -1,3 +1,5 @@
+# NOTE: this file was originally named "calcRelevanceStrBySent ver 5 assume Irrel.py"
+
 # Generate RELEVANCE strings for all CoLAG sentence patterns
 #  (Note: easy to rewrite for all CoLAG tree structures).
 
