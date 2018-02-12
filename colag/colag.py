@@ -11,6 +11,20 @@ TRIGGER_VEC_ORDER = '01*~'
 COLAG_TSV = '../data/COLAG_2011_ids.txt'
 IRRELEVANCE_OUTPUT = '../data/irrelevance-output.txt'
 
+parameters = ['sp',
+              'hip',
+              'hcp',
+              'opt',
+              'ns',
+              'nt',
+              'whm',
+              'pi',
+              'tm',
+              'VtoI',
+              'ItoC',
+              'ah',
+              'QInv']
+
 def grammar_str(g):
     return '{:013b}'.format(g)
 
