@@ -72,8 +72,8 @@ Ltarg = [] # list of sentences (or actually sentIDs) licensed by Gtarg
 
 
 # Input file, the CoLAG Domain, 3 columns, Grammar ID, Sent ID and Structure ID
-LD_File = "./william-code/COLAG_2011_ids.txt"
-Irrelevance_String_File = "./irrelevance-output.txt"
+LD_File = "../data/COLAG_2011_ids.txt"
+Irrelevance_String_File = "../data/irrelevance-output.txt"
 
 Out_Data_Path            = "./"
 Out_Data_File_base       = "OUTDATA_REL"
@@ -246,7 +246,7 @@ def run():
 
     global Ltarg
 
-    relevanceStrDict = readRelevanceStrings('./irrelevance-output.txt')
+    relevanceStrDict = readRelevanceStrings(Irrelevance_String_File)
 
     for targIdx in range(len(GTARGIDS)): # only Enlgish
 
