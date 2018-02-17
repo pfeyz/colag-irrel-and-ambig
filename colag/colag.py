@@ -8,8 +8,8 @@ from scipy.spatial import distance
 
 TRIGGER_VEC_ORDER = '01*~'
 
-COLAG_TSV = '../data/COLAG_2011_ids.txt'
-IRRELEVANCE_OUTPUT = '../data/irrelevance-output.txt'
+COLAG_TSV = './data/COLAG_2011_ids.txt'
+IRRELEVANCE_OUTPUT = './data/irrelevance-output.txt'
 
 parameters = ['sp',
               'hip',
@@ -84,8 +84,13 @@ class Colag:
     def __init__(self, grammars, sentences, grammar_irr, sentence_irr):
         self.sentences = sentences
         self.grammars = grammars
+        self.language = grammars
         self.grammar_irr = grammar_irr
         self.sentence_irr = sentence_irr
+
+    @classmethod
+    def default(cls):
+        return Colag.from_tsvs(COLAG_TSV, IRRELEVANCE_OUTPUT)
 
     @classmethod
     def from_tsvs(cls, colag_tsv, irrelevance_tsv):
@@ -125,6 +130,9 @@ class Colag:
         assert len(grammars) == 3072, 'expected 3072 grammars in colag tsv'
 
         return Colag(grammars, sentences, grammar_irr, sentence_irr)
+
+    def legal_grammar(self, g):
+        return g in self.language
 
     def grammar_sent_distance(self, g1, g2):
         return 1 - jaccard_coef(self.grammars[g1], self.grammars[g2])
