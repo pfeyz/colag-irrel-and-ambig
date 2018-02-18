@@ -1,3 +1,27 @@
+"""
+This file contains implementations of Charles Yang's Variational Learner.
+
+The learner maintains a vector of weights (in the range 0-1), one for each
+parameter, all initialized to 0.5.
+
+When presented with an input sentence, the learner picks a hypothesis grammar
+based on the setting of the weights. When all weights are 0.5, they are picking
+a grammar completely at random.
+
+If the parse succeeds, the weights are updated based on the grammar used for
+the parse. For example, in a 3-param domain, if the parse succeeded using the
+grammar 010, then the weights in the weight vector will be nudged down, up,
+down, for the first, second and third parameters, respectively.
+
+In the case of the reward-only learner, no action is taken in the case of a
+parse failure.
+
+When selecting a hypothesis grammar, a weight of 0.8 for parameter 3 would mean
+an 80% chance of picking a grammar with P3 set to 1. The value of each
+parameter is set independently of all the others.
+
+"""
+
 import random
 
 from colag.colag import Colag, get_param_value, toggled
