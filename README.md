@@ -20,7 +20,7 @@ hypothesis-updating procedure.
 
 The parameters are listed and numbered from left to right. SP, HIP, HCP etc are
 parameter numbers 1, 2, 3 etc. In the integer grammar id representation of a
-grammar, these are the would be the three most significant bits.
+grammar, these are the three most significant bits.
 
 Subject position (SP) is parameter #1, which corresponds to the 13th bit in the
 integer grammar id and binary bitstring.

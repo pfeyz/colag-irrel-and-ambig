@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # NOTE: this file was originally named YangCoLAG3.py
 
@@ -119,13 +118,7 @@ def setupLD() :
 def reward(relstr):
   global Wcurr, Gcurr
   for i in range(n):
-    if relstr[i] == '~':
-      # param is irrelevant, ignore it.
-      continue
     update_rate = r
-    if relstr[i] == '*':
-        # param is ambiguous, be conservative.
-        update_rate = cr
     if Gcurr[i]=='0':
       Wcurr[i] -= update_rate * Wcurr[i];
     else:

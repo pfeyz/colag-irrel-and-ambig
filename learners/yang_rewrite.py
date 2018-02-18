@@ -120,7 +120,7 @@ class RelevantRewardOnlyLearner(VariationalLearner):
     """
     def reward(self, hypothesis_grammar, sentence):
         """ If `sentence` is known to be irrelevant to the parameter setting of Pi, do
-        not update the weights of Pi. The other parameters might still be updated.
+        not update the weights for Pi. The other parameters might still be updated.
         The irrelevance is a per-sentence/per-parameter consideration.
         """
 
