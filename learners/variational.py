@@ -1,320 +1,236 @@
+"""
+This file contains implementations of Charles Yang's Variational Learner.
 
-# NOTE: this file was originally named YangCoLAG3.py
+The learner maintains a vector of weights (in the range 0-1), one for each
+parameter, all initialized to 0.5.
 
-from __future__ import print_function
+When presented with an input sentence, the learner picks a hypothesis grammar
+based on the setting of the weights. When all weights are 0.5, they are picking
+a grammar completely at random.
 
-####
-# WORKs: That is, duplicates Galana results
-#######
+If the parse succeeds, the weights are updated based on the grammar used for
+the parse. For example, in a 3-param domain, if the parse succeeded using the
+grammar 010, then the weights in the weight vector will be nudged down, up,
+down, for the first, second and third parameters, respectively.
 
-# Yang's Variational Learner (adapted from Sakas 2015)
-# Given:
-# 1)      n, the number of parameters
-# 2)      W=(w1, w2, . . . , wn), a vector of weights,
-#           where each wi is stipulated to be between 0 and 1
-# 3)      the current grammar (i.e., a vector of parameter values):
-#            Gcurr =(p1, p2,  . . . , pn),
-#            where each pi is a either a 1 value or a 0 value
+In the case of the reward-only learner, no action is taken in the case of a
+parse failure.
 
-##  Pseudo-code#
-#	For each wi in W, set wi to 0.5
-#	For each randomly chosen input sentence s from the target language:
-#	   For each parameter pi in Gcurr :
-#            a. with probability wi , choose the value of pi to be 1;
-#            b. with probability 1 - wi , choose the value of pi to be 0 ;
-#	Parse s with Gcurr
-#	If s can be parsed by Gcurr, "reward" the weights in W accordingly.
+When selecting a hypothesis grammar, a weight of 0.8 for parameter 3 would mean
+an 80% chance of picking a grammar with P3 set to 1. The value of each
+parameter is set independently of all the others.
 
+"""
 
-################ Yang Reward-only Learner aligned with code below ###########################
-#
-# 1)    set all elements of Wcurr to .5 (Wcurr is the W in above Pseudo-code)
-# 2)    Gcurr = chooseBasedOn(Wcurr)  -- Choose a grammar randomly weighted by weights in Wcurr vector
-# 3)    s = chooseSentUnif() -- Choose a random sentence from the target language
-# 4)    Test if Gcurr can parse (licenses) s
-# 5)    if Gcurr can parse s, reward the system by nudging weights: Wcurr = reward(Wcurr) else do nothing
-# 6)    if all weights fall within threshold t, output number of sentences and exit
-# 7)    goto 2)
-
-
-from collections import defaultdict
 import random
-import datetime
 
-##########
-# Globals - Note "grammars" and "sentences" are globally stored as integer "ids"
-##########    except for Gtarg and Gcurr (see below)
+from colag.colag import Colag, get_param_value, toggled
+from datetime import datetime
 
-# ***NEW***, with relevance:
+def param_list_to_grammar(params):
+    """Given a list of 0s and 1s `params`, treat it as a bitstring and
+    return its integer value."""
+    grammar = 0
+    total_bits = len(params)
+    for bit, value in enumerate(params):
+        grammar += value * (2 ** (total_bits - bit - 1))
+    return grammar
 
-# Dictionary of key:grammID; value:set of sentIDs
-LDsents     = defaultdict(set)
+def weighted_coin_flip(weight):
+    " Returns 1 with a probability of `weight`, otherwise 0. "
+    return int(random.random() < weight)
 
-# a list of all valid CoLAG grammar IDs, stored as a dict for efficient lookup
-CoLAG_Gs = {} # Wm note: This should probably be a set of grammar IDs
+class VariationalLearner:
+    """An abstract base class for a variational learner.
 
+    To create a usable variational learner, make a class that subclasses this
+    one and defines `reward` and `punish` methods which update the parameter
+    weights.
+    """
+    def __init__(self, domain, num_params=13, learning_rate=.0005):
+        """Args:
 
-#################
-### BEGIN Globals
-#################
+        - domain: an object representing the Colag domain. it should
+        have the following defined:
 
-n = 13 # number of parameters
-r = .0005  # learning rate
-cr = .0001  # conservative learning rate
+          1. a .legal_grammar method, which accepts an integer grammar id
+             and returns true if that grammar exists in Colag.
 
-trials = 100 # number of simulated learning trials to run
-max_sents =  50000 # max number of sents before ending a trial
-threshold = .02 # when all weights are within a threshold, stop
+          2. a .language attribute, which is a dictionary which maps from
+             grammar ids to sets of sentence ids.
 
-Wcurr = [] # current weights
-Gcurr = [] # current grammar
-Gtarg = [] # target grammar
-Ltarg = [] # list of sentences (or actually sentIDs) licensed by Gtarg
+        - num_params: the # of params in the language.
+        TODO: make this an attribute of the domain object.
 
+        - learning_rate: a float that controls how much the weights are updated
+        with every sentence.
 
-# Input file, the CoLAG Domain, 3 columns, Grammar ID, Sent ID and Structure ID
-LD_File = "../data/COLAG_2011_ids.txt"
-Irrelevance_String_File = "../data/irrelevance-output.txt"
+    """
 
-Out_Data_Path            = "./"
-Out_Data_File_base       = "OUTDATA_REL"
-Out_Data_Date_Time_stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-Out_Data_File = Out_Data_Path+Out_Data_File_base+Out_Data_Date_Time_stamp+".csv"
+        self.domain = domain
+        self.learning_rate = learning_rate
+        self.num_params = num_params
+        self.weights = [0.5] * num_params
 
-Notes = "" # Prompt user for notes for the current run
-
-USE_REL_STR = True
-DEFAULT_REL_STR = '0' * 13
-
-##############
-# END Globals
-##############
-
-
-###########
-# Global Functions
-##########################
-def setupLD() :
-
-  global LDsents, LDstructs, CoLAG_Gs, Notes
-
-
-  File = open(LD_File,"r")
-  for line in File:
-    line = line.rstrip()
-
-    [g,       sent,   struct]    = line.split("\t")
-    [grammID, sentID, structID, relString] = [int(g), int(sent), int(struct), "~~~~~~~~~~~~~"]
-    # when we do relevance we need a way to load proper relevance string, the above is a dummy
-
-    # if haven't hit grammID yet in the file, add to list of CoLAG_GS and to LD
-    if grammID not in CoLAG_Gs:
-        CoLAG_Gs[grammID]=0
-        LDsents[grammID]=set()
-
-    LDsents  [grammID].add(sentID) # key:int, value:set of ints
-
-
-def reward(relstr):
-  global Wcurr, Gcurr
-  for i in range(n):
-    update_rate = r
-    if Gcurr[i]=='0':
-      Wcurr[i] -= update_rate * Wcurr[i];
-    else:
-      Wcurr[i] += update_rate * (1.0-Wcurr[i]);
-
-
-def converged():
-  global Wcurr
-  for i in range(n):
-    if not (1-Wcurr[i] <  threshold  or Wcurr[i] < threshold):
-      return False
-  return True
-
-#def converged(): We may add something like below for sub/super and other problem parameters
-#  global Wcurr
-#  for i in range(5):
-#    if not (1-Wcurr[i] <  threshold  or Wcurr[i] < threshold):
-#      return False
-#  for i in range(7,n):
-#    if not (1-Wcurr[i] <  threshold  or Wcurr[i] < threshold):
-#      return False
-#  return True
-
-
-
-def canParse(s,l): # is sentence ID s in language dictionary l?
-    if s in l:  # inefficient if l is a list
-      return True
-    else:
-      return False
-
-def chooseGrammarBasedOn(weights):
-    Gtmp = ""
-    for i in range(n):
-
-### Maybe force correct setting for Eng Wh-movement (P7=1) and OpTOP (P4=1)
-#        if i == 6:
-#            Gtmp+="1"
-#        elif i == 3:
-#            Gtmp+="1"
-#        else:
-        x = random.random()
-        if x < weights[i]: # checked against Charles code
-            Gtmp+="1" # probably more efficient to declare static Gtmp and not append
+    def consume(self, sentence):
+        """ Update the parameter weights based on the knowledge that `sentence`
+        (an integer sentence id) exists in the target language.
+        """
+        hypothesis_grammar = self.choose_grammar()
+        if self.parses(hypothesis_grammar, sentence):
+            self.reward(hypothesis_grammar, sentence)
         else:
-            Gtmp+="0"
-    return Gtmp
+            self.punish(hypothesis_grammar, sentence)
 
-def chooseSentUnif():
-    #UNIFORM
-    x = random.randint(0,len(Ltarg)-1)
-    sID = Ltarg[x]
-    return sID
+    def parses(self, grammar, sentence):
+        """ Returns True if `sentence` parses in `grammar`. """
+        return sentence in self.domain.language[grammar]
 
-def bin2Dec(bList): # bList is a list of 1's and 0's
-    binStr = ""
-    for b in bList:
-        binStr += str(b)
-    return int(binStr,2)
+    def choose_grammar(self):
+        """Returns a random grammar valid in the language domain.
 
-def headerOutput(File, NotesP):
-    headerstr = "Learning rate:" + str(r) + ", Threshold:" + str(threshold) + ", Note: " + NotesP + ",CovergedID"+","+"\n"
-    File.write(headerstr)
+        Each param is picked independently at random weighted by the
+        corresponding weight in self.weights. If self.weights[0] is 0.2,
+        then parameter 1 has a 20% chance of being set to 1.
+        """
+        grammar = None
+        while not self.domain.legal_grammar(grammar):
+            grammar = 0
+            for index, w in enumerate(self.weights):
+                if random.random() < w:
+                    grammar = toggled(12 - index, grammar)
+        return grammar
 
-def csvOutput(File, targ, run, cnt, G, W, time_elapsed):
-    Gout =""
-    Wout =""
-    Pout =""
-    for i in range(n):
-      Gout += str(G[i])
-    for i in range(n):
-      Wout += str(round(W[i],15))+","
+    def converged(self, threshold):
+        """Returns true if all values in `weights` list are less than
+        `threshold` away from 0 or 1.
+        """
+        for w in self.weights:
+            if not (1 - w < threshold) or (w < threshold):
+                return False
+        return True
 
-    outStr = str(targ)+","+str(run)+","+str(cnt)+","+str(bin2Dec(G))+","+"'"+Gout+","+Wout+","+str(time_elapsed)+"\n"
-    File.write(outStr)
+    def reward(self, hypothesis_grammar, sentence):
+        """ Updates the param weights based on the knowledge that `sentence`
+        parses in `hypothesis_grammar`.
+        """
+        raise NotImplementedError()
 
-def readRelevanceStrings(filename):
-  relDict = {}
-  with open(filename) as fh:
-    for line in fh:
-      sid, irrelStr = line.split()
-      sid = int(sid)
-      relDict[sid] = irrelStr
-  return relDict
+    def punish(self, hypothesis_grammar, sentence):
+        """ Updates the param weights based on the knowledge that `sentence`
+        does not parse in `hypothesis_grammar`.
+        """
+        raise NotImplementedError()
 
-# use raw_input for python2, input for python3
-try:
-    input = raw_input
-except NameError:
-    pass
+    def best_guess(self):
+        return param_list_to_grammar([round(p) for p in self.weights])
 
-############################################
-## MAIN MAIN MAIN reward only learner
-############################################
-def run():
+class RewardOnlyLearner(VariationalLearner):
+    """ Variational learner that only updates weights if sentence parses in grammar. """
+    def reward(self, hypothesis_grammar, sentence):
+        for index in range(13):
+            val = get_param_value(12-index, hypothesis_grammar)
+            weight = self.weights[index]
+            if val == 0:
+                self.weights[index] -= self.learning_rate * weight
+            elif val == 1:
+                self.weights[index] += self.learning_rate * (1-weight)
 
-    global Wcurr, Gcurr, OUTDATA
+    def punish(*args):
+        pass
 
-    print("Setting up ...")
+class RelevantRewardOnlyLearner(VariationalLearner):
+    """Reward-only learner that ignores irrelevant parameter evidence.
+    """
+    def reward(self, hypothesis_grammar, sentence):
+        """ If `sentence` is known to be irrelevant to the parameter setting of Pi, do
+        not update the weights for Pi. The other parameters might still be updated.
+        The irrelevance is a per-sentence/per-parameter consideration.
+        """
 
-    OUTDATA = open(Out_Data_File,'w')
+        trigger_str = self.domain.sentence_irr[sentence]
+        for index in range(13):
+            if trigger_str[index] == '~':
+                continue
+            val = get_param_value(12-index, hypothesis_grammar)
+            weight = self.weights[index]
+            if val == 0:
+                self.weights[index] -= self.learning_rate * weight
+            elif val == 1:
+                self.weights[index] += self.learning_rate * (1-weight)
 
-    Notes = input("Enter notes for this run: ")
+    def punish(*args):
+        pass
 
-    print("Working ...")
+class SkepticalRewardOnlyLearner(VariationalLearner):
+    """ Relevant-reward-only learner that uses knowledge of ambiguity to temper
+    weight adjustments.
+    """
+    def reward(self, hypothesis_grammar, sentence):
+        """ If `sentence` is known to be ambiguous evidence wrt Pi, be
+        conservative in adjusting Pi. """
+        trigger_str = self.domain.sentence_irr[sentence]
+        for index in range(13):
+            if trigger_str[index] == '~':
+                continue
+            learning_rate = self.learning_rate
+            if trigger_str[index] == '*':
+                learning_rate = learning_rate / 2
+            val = get_param_value(12-index, hypothesis_grammar)
+            weight = self.weights[index]
+            if val == 0:
+                self.weights[index] -= learning_rate * weight
+            elif val == 1:
+                self.weights[index] += learning_rate * (1-weight)
 
-    headerOutput(OUTDATA, Notes)
+    def punish(*args):
+        pass
 
-    setupLD() # sets up all 3072 potential target grammars/languages
-              # into global LD variables
+class PunishOnlyLearner(RewardOnlyLearner):
+    def reward(self, hypothesis_grammar, sentence):
+        pass
 
-    # CoLAG English, Japanese, German and French
-    GTARGS =  [ [0,0,0,1,0,0,1,1,0,0,0,1,1] ,  \
-                [0,1,1,1,1,0,0,0,1,0,0,0,0] ,  \
-                [0,1,0,0,0,1,1,0,0,1,1,0,1] ,  \
-                [0,0,0,1,0,0,1,0,0,1,0,0,0]    \
-              ]
-
-    GTARGIDS = [611, 3856, 2253, 584]
-
-    global Ltarg
-
-    relevanceStrDict = readRelevanceStrings(Irrelevance_String_File)
-
-    for targIdx in range(len(GTARGIDS)): # only Enlgish
-
-        Gtarg   = GTARGS[targIdx]       # Gtarg is a 13 element list of 0's and 1's
-        GtargID = GTARGIDS[targIdx]     # GtargID is a decimal representation of Gtarg
-        Ltarg   = list(LDsents[GtargID]) # Ltarg is a list of sentIDs
-
-        overallStart = datetime.datetime.now()
-        print("Running ...")
-
-        for runNum in range(trials):
-          start = datetime.datetime.now()
-
-          Wcurr = [.5 for i in range(n)] # initialize weights to 0.5
-
-          Gcurr = ""
-
-          numSents = 0
-
-          CONVERGED = False
-
-          while not CONVERGED and numSents < max_sents:
-
-              Gcurr = chooseGrammarBasedOn(Wcurr)
-              GcurrID = int(Gcurr,2) # not needed: bin2Dec(Gcurr)
-
-              # Yang learner doesn't know about CoLAG constraints, so
-              #    needs to loop until it finds a valid grammar. May be
-              #    faster way to implement this
-              while GcurrID not in CoLAG_Gs:
-                   Gcurr   = chooseGrammarBasedOn(Wcurr)
-                   GcurrID = int(Gcurr,2)  # not needed: bin2Dec(Gcurr)
-
-              s = chooseSentUnif() # s is a sentID
-
-              numSents = numSents + 1
-
-
-              # if s can be parsed by Gcurr
-              if s in LDsents[GcurrID]: # LD[GcurrID] is a set of sentIDs
-
-                  # grab relevance string of s
-                  if USE_REL_STR:
-                      relevanceStr = relevanceStrDict[s]
-                  else:
-                      relevanceStr = DEFAULT_REL_STR
-                  #   picks a parse tree that generates s given Gcurr
-                  #   the 'parser' returns a string indicating which parameters were irrelevant
-                  #   in terms of building the parse tree
-                  #  DEGUG: print(s, relevanceStr)
-                  reward(relevanceStr)
-              else:
-                  pass # print("GcurrID: ", GcurrID)
+    def punish(self, hypothesis_grammar, sentence):
+        ones = (2 ** self.num_params) - 1
+        return super().reward(hypothesis_grammar ^ ones, sentence)
 
 
+#### Simulation Code
 
+def choose_sentence(language):
+    return random.choice(language)
 
-              CONVERGED = converged()
+def learn_language(learner, target_language, iterations):
+    weights = [0.5] * 13
+    threshold = 0.02
+    counter = 0
 
+    while not learner.converged(threshold):
+        sentence = choose_sentence(target_language)
+        learner.consume(sentence)
+        if counter >= iterations:
+            break
+        counter += 1
 
-          end = datetime.datetime.now()
-          elapsed = end - start
-          overallElapsed = end - overallStart
+    return counter
 
-          csvOutput(OUTDATA, GtargID, runNum, numSents, Gcurr , Wcurr, elapsed)
+def timed_apply(fun, *args, **kwargs):
+    start = datetime.now()
+    result = fun(*args, **kwargs)
+    end = datetime.now()
+    return (end - start).total_seconds(), result
 
-          if runNum % 1 == 0:
-            print("GtargID: ", GtargID, "RUN: ", runNum, "took", str(elapsed), "Overall so far: ", overallElapsed)
+def weights_to_params(weights):
+    return ''.join(str(round(x)) for x in weights)
 
-
-run()
-
-
-OUTDATA.close()
-
-print("Done.")
+if __name__ == "__main__":
+    domain = Colag.default()
+    for grammar in [611, 3856, 2253, 584]:
+        language = tuple(domain.language[grammar])
+        for i in range(100):
+            learner = RelevantRewardOnlyLearner(domain)
+            runtime, iterations = timed_apply(learn_language, learner, language, iterations=600000)
+            gcurr = learner.choose_grammar()
+            col = [grammar, i, iterations, learner.choose_grammar(), ''] + learner.weights
+            col = col + ['', runtime]
+            print('\t'.join(map(str, col)))
