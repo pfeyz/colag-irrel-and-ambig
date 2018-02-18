@@ -95,8 +95,11 @@ def main():
                   if g not in grammars}
 
     for sentence in sorted(colag):
-        print(sentence,
-              ''.join(mark_irrelevant_params(colag, disallowed, sentence)))
+        irr_str = mark_irrelevant_params(colag, disallowed, sentence)
+        # reverse the order of the str. the first parameter should be the first
+        # *bit* in the number, not the first char in the str.
+        irr_str = irr_str[::-1]
+        print(sentence, ''.join(irr_str))
 
 
 if __name__ == '__main__':
