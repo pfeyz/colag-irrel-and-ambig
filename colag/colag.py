@@ -1,10 +1,19 @@
 import argparse
 import csv
 import random
-import numpy as np
+import warnings
 from itertools import repeat
 from collections import Counter
-from scipy.spatial import distance
+
+try:
+    import numpy as np
+except ImportError:
+    warnings.warn('install numpy to run jaccard index')
+
+try:
+    from scipy.spatial import distance
+except ImportError:
+    warnings.warn('install scipy to run cosine distance measures')
 
 TRIGGER_VEC_ORDER = '01*~'
 
