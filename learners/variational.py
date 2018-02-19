@@ -8,10 +8,11 @@ When presented with an input sentence, the learner picks a hypothesis grammar
 based on the setting of the weights. When all weights are 0.5, they are picking
 a grammar completely at random.
 
-If the parse succeeds, the weights are updated based on the grammar used for
-the parse. For example, in a 3-param domain, if the parse succeeded using the
-grammar 010, then the weights in the weight vector will be nudged down, up,
-down, for the first, second and third parameters, respectively.
+If the learner can parse the input sentence using the hypothesis grammar, the
+weights are updated to reflect that grammar's success. For example, in a
+3-parameter domain, if the parse succeeds using the grammar 010, then the
+weights in the weight vector will be nudged down, up, down, for the first,
+second and third parameters, respectively.
 
 In the case of the reward-only learner, no action is taken in the case of a
 parse failure.
@@ -98,7 +99,8 @@ class VariationalLearner:
             grammar = 0
             for index, w in enumerate(self.weights):
                 if random.random() < w:
-                    grammar = toggled(12 - index, grammar)
+                    grammar = toggled(12 - index, grammar) # toggle the bit in
+                                                           # the grammar int
         return grammar
 
     def converged(self, threshold):
@@ -139,7 +141,7 @@ class RewardOnlyLearner(VariationalLearner):
     def punish(*args):
         pass
 
-class RelevantRewardOnlyLearner(VariationalLearner):
+class RewardOnlyRelevantLearner(VariationalLearner):
     """Reward-only learner that ignores irrelevant parameter evidence.
     """
     def reward(self, hypothesis_grammar, sentence):
@@ -163,8 +165,8 @@ class RelevantRewardOnlyLearner(VariationalLearner):
         pass
 
 class SkepticalRewardOnlyLearner(VariationalLearner):
-    """ Relevant-reward-only learner that uses knowledge of ambiguity to temper
-    weight adjustments.
+    """A Reward-only-relevant learner that uses knowledge of ambiguity
+    to temper weight adjustments.
     """
     def reward(self, hypothesis_grammar, sentence):
         """ If `sentence` is known to be ambiguous evidence wrt Pi, be
@@ -240,7 +242,7 @@ def run_vl_on_languages(Learner, grammar_ids, num_learners, num_sentences, domai
 def main():
     """ Runs 100 simulations on all 3 learner types for 50,000 sentences in 4 different languages """
     domain = Colag.default()
-    for learner in [RewardOnlyLearner, RelevantRewardOnlyLearner, SkepticalRewardOnlyLearner]:
+    for learner in [RewardOnlyLearner, RewardOnlyRelevantLearner, SkepticalRewardOnlyLearner]:
         results = run_vl_on_languages(learner,
                                       grammar_ids=[611, 3856, 2253, 584],
                                       num_learners=100,
