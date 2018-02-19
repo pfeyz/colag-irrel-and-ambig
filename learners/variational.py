@@ -214,23 +214,41 @@ def learn_language(learner, target_language, iterations):
 
     return counter
 
-def timed_apply(fun, *args, **kwargs):
-    start = datetime.now()
-    result = fun(*args, **kwargs)
-    end = datetime.now()
-    return (end - start).total_seconds(), result
-
 def weights_to_params(weights):
     return ''.join(str(round(x)) for x in weights)
 
-if __name__ == "__main__":
-    domain = Colag.default()
-    for grammar in [611, 3856, 2253, 584]:
+def run_vl_on_languages(Learner, grammar_ids, num_learners, num_sentences, domain=None):
+    domain = domain or Colag.default()
+    for grammar in grammar_ids:
         language = tuple(domain.language[grammar])
-        for i in range(100):
-            learner = RelevantRewardOnlyLearner(domain)
-            runtime, iterations = timed_apply(learn_language, learner, language, iterations=600000)
-            gcurr = learner.choose_grammar()
-            col = [grammar, i, iterations, learner.choose_grammar(), ''] + learner.weights
-            col = col + ['', runtime]
-            print('\t'.join(map(str, col)))
+        for trial_num in range(num_learners):
+            learner = Learner(domain)
+
+            start = datetime.now()
+            sentences_consumed = learn_language(learner, language, iterations=num_sentences)
+            end = datetime.now()
+            runtime = end - start
+
+            result = [grammar,
+                          trial_num,
+                          sentences_consumed,
+                          learner.choose_grammar()]
+            result += learner.weights
+            result += ['', runtime]
+            yield result
+
+def main():
+    """ Runs 100 simulations on all 3 learner types for 50,000 sentences in 4 different languages """
+    domain = Colag.default()
+    for learner in [RewardOnlyLearner, RelevantRewardOnlyLearner, SkepticalRewardOnlyLearner]:
+        results = run_vl_on_languages(learner,
+                                      grammar_ids=[611, 3856, 2253, 584],
+                                      num_learners=100,
+                                      num_sentences=50000,
+                                      domain=domain)
+        for result in results:
+            result = [learner.__name__] + result
+            print('\t'.join(map(str, result)))
+
+if __name__ == "__main__":
+    main()
