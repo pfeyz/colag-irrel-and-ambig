@@ -1,9 +1,9 @@
 # Irrelevance and Ambiguity
 
-How can (oracle) knowledge of the trigger status of an input sentence effect
+How can (oracle) knowledge of the trigger status of an input sentence affect
 learning?
 
-The learner is inspecting a sentence S. Given this oracle knowledge, they know
+The learner is inspecting a sentence S. Given the oracle knowledge, they know
 that this sentence either
 
 - contains a global trigger for Pi=0 or 1.
