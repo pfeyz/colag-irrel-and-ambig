@@ -96,6 +96,7 @@ class Colag:
         self.language = grammars
         self.grammar_irr = grammar_irr
         self.sentence_irr = sentence_irr
+        self.num_params = 13
 
     @classmethod
     def default(cls):

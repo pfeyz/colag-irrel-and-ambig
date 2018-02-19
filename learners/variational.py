@@ -48,7 +48,7 @@ class VariationalLearner:
     one and defines `reward` and `punish` methods which update the parameter
     weights.
     """
-    def __init__(self, domain, num_params=13, learning_rate=.0005):
+    def __init__(self, domain, learning_rate=.0005):
         """Args:
 
         - domain: an object representing the Colag domain. it should
@@ -60,9 +60,6 @@ class VariationalLearner:
           2. a .language attribute, which is a dictionary which maps from
              grammar ids to sets of sentence ids.
 
-        - num_params: the # of params in the language.
-        TODO: make this an attribute of the domain object.
-
         - learning_rate: a float that controls how much the weights are updated
         with every sentence.
 
@@ -70,8 +67,7 @@ class VariationalLearner:
 
         self.domain = domain
         self.learning_rate = learning_rate
-        self.num_params = num_params
-        self.weights = [0.5] * num_params
+        self.weights = [0.5] * domain.num_params
 
     def consume(self, sentence):
         """ Update the parameter weights based on the knowledge that `sentence`
@@ -193,7 +189,7 @@ class PunishOnlyLearner(RewardOnlyLearner):
         pass
 
     def punish(self, hypothesis_grammar, sentence):
-        ones = (2 ** self.num_params) - 1
+        ones = (2 ** self.domain.num_params) - 1
         return super().reward(hypothesis_grammar ^ ones, sentence)
 
 
