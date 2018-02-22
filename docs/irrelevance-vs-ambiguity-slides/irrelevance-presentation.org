@@ -70,7 +70,8 @@ $$ \begin{bmatrix} 0 & 1 & 1 \end{bmatrix} $$
 
 \pause
 
-- a vector of per-parameter confidence levels, as in Katherine's learner:
+- a vector of per-parameter confidence levels, as in the Howitt Learner
+  [fn::Known colloquially as "Katherine's Learner"]:
 
     $$ \begin{bmatrix} 0.05 & 0.6 & 0.98 \end{bmatrix} $$
 * Sentences
