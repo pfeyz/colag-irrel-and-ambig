@@ -12,6 +12,17 @@
 
 \setbeamertemplate{navigation symbols}{}
 
+# * Some notes on terminology
+#   - $PN$ = parameter number $N$.
+#   - $G$ = a grammar = a setting of parameters = a bitstring . In the grammar:
+#     $$ \begin{bmatrix}0 & 0 & 1 \end{bmatrix} $$
+#     $P1=0$, $P2=0$, $P3=1$.
+#   - $s$ = a sentence, like "S V O"
+#   - $L(G)$ = the set of sentences "generated" by the grammar $G$.
+#   - $L(G)$ = the set of sentences "licensed by" $G$.
+#   - $L(G)$ = the set of sentences that parse in $G$.
+#   - $L(G)$ = the set of sentences considered grammatical in the language with
+#     parameters set to $G$.
 * Learners
 \pause
 
@@ -25,7 +36,7 @@ $$ L(G) = \{S_1 S_2 S_3 \ldots\}$$
 
 \pause
 
-- is trying to deduce the grammmar
+- is trying to deduce the grammar
 
   $$ G $$
 
@@ -172,7 +183,7 @@ To determine what kind of evidence $s$ is with regard to $P_3$:
 * Smoothness: Parameters vs Sentences
   [[./images/hamming-vs-jacard.png]]
   - hamming distance -- number of bits that differ between two bit-strings
-  $$ jacard(L(G1), L(G2))
+  $$ jaccard(L(G1), L(G2))
        = \frac{L(G1) \cap L(G2)}{L(G1) \cup L(G2)}
        = \frac{\text{\# sentences in common}}{\text{\# sentences in total}}
     $$
