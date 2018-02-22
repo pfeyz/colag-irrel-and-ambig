@@ -194,7 +194,7 @@ class PunishOnlyLearner(RewardOnlyLearner):
         return super().reward(hypothesis_grammar ^ ones, sentence)
 
 
-#### Simulation Code
+#### Simulation Code - this is temporary and should be refactored
 
 def choose_sentence(language):
     return random.choice(language)
