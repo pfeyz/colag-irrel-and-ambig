@@ -25,12 +25,11 @@ grammar, these are the three most significant bits.
 Subject position (SP) is parameter #1, which corresponds to the 13th bit in the
 integer grammar id and binary bitstring.
 
-- 0000000000000 has SP=0 (no question inversion)
-- 1000000000000 (grammar id 4096) has parameter 1, SP, set to 1 (obligatory
-question inversion).
+- 0000000000000 has SP=0 (subject initial)
+- 1000000000000 (grammar id 4096) has parameter 1, SP, set to 1 (subject final).
 
 Q-inversion (QInv) is parameter #13, which corresponds to the 1st bit in the
 grammar bitstring.
 
-- 0000000000000 has QInv off (subject initial)
-- 0000000000001 (grammar id 1) has Qinv, parameter 13, set to 1 (subject final).
+- 0000000000000 has QInv off (no question inversion)
+- 0000000000001 (grammar id 1) has Qinv, parameter 13, set to 1 (obligatory question inversion).
