@@ -245,6 +245,27 @@ def main():
     domain = Colag.default()
     with open("learner_results.csv", "wb") as f:
         writer = csv.writer(f)
+        writer.writerow([
+              'Type of Learner',
+              'Grammar ID',
+              'Number of Sentences',
+              'Learner Number',
+              'Domain',
+              'sp',
+              'hip',
+              'hcp',
+              'opt',
+              'ns',
+              'nt',
+              'whm',
+              'pi',
+              'tm',
+              'VtoI',
+              'ItoC',
+              'ah',
+              'QInv',
+              '',
+              'Time Stamp'])
         for learner in [RewardOnlyLearner, RewardOnlyRelevantLearner, SkepticalRewardOnlyLearner]:
             results = run_vl_on_languages(learner,
                                       grammar_ids=[611, 3856, 2253, 584],
