@@ -1,23 +1,6 @@
-import csv
+from colag import Colag
 
 NUM_PARAMS = 13
-
-def read_colag_tsv(filename):
-    """Returns a dictionary with sentence ids as keys. Each value is a set of
-    grammars IDs - the grammars that generate that sentence.
-
-    """
-    colag = {}
-    with open(filename) as handle:
-        reader = csv.reader(handle, delimiter='\t')
-        for grammar, sentence, _ in reader:
-            grammar = int(grammar)
-            sentence = int(sentence)
-            try:
-                colag[sentence].add(grammar)
-            except KeyError:
-                colag[sentence] = {grammar}
-    return colag
 
 def get_param_value(index, grammar):
     """Return the status (0 or 1) of parameter number `index` in `grammar`,
@@ -53,7 +36,7 @@ def mark_unambiguous_params(colag, sentence):
     """
 
     param_list = [None for _ in range(13)]
-    generators = colag[sentence]
+    generators = colag.sentences[sentence]
     for i in range(13):
         values = set(get_param_value(i, gram) for gram in generators)
         assert len(values) > 0
@@ -65,41 +48,31 @@ def mark_unambiguous_params(colag, sentence):
     return param_list
 
 
-def mark_irrelevant_params(colag, disallowed, sentence):
+def mark_irrelevant_params(colag, sentence):
     """Returns 13-item list containing 0, 1, ~ or *"""
     relstr = mark_unambiguous_params(colag, sentence)
     for param, val in enumerate(relstr):
         assert val in ['~', '0', '1'], val
         if val != '~':
             continue
-        generators = colag[sentence]
-        for generator in colag[sentence]:
+        generators = colag.sentences[sentence]
+        for generator in generators:
             minimal_pair = toggled(param, generator)
             # TODO: is this "and" correct?
-            if minimal_pair not in generators and minimal_pair not in disallowed:
+            if minimal_pair not in generators and colag.legal_grammar(minimal_pair):
                 relstr[param] = '*'
                 break
     return relstr
 
 def main():
-    colag = read_colag_tsv('../data/COLAG_2011_ids.txt')
-    grammars = set([g
-                    for grams in colag.values()
-                    for g in grams])
+    colag = Colag.default()
 
-    assert len(colag) == 48077, 'expected 48077 sentences in colag tsv'
-    assert len(grammars) == 3072, 'expected 3072 grammars in colag tsv'
-
-    # the grammars that are not included in colag.
-    disallowed = {g for g in range(2**NUM_PARAMS)
-                  if g not in grammars}
-
-    for sentence in sorted(colag):
-        irr_str = mark_irrelevant_params(colag, disallowed, sentence)
+    for sentence in sorted(colag.sentences):
+        irr_str = mark_irrelevant_params(colag, sentence)
         # reverse the order of the str. the first parameter should be the first
         # *bit* in the number, not the first char in the str.
         irr_str = irr_str[::-1]
-        print(sentence, ''.join(irr_str))
+        print sentence, ''.join(irr_str)
 
 
 if __name__ == '__main__':
