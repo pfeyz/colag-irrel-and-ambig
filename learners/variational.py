@@ -25,6 +25,10 @@ parameter is set independently of all the others.
 
 import random
 
+import sys
+print(sys.path)
+import csv
+
 from colag.colag import Colag, get_param_value, toggled
 from datetime import datetime
 
@@ -239,15 +243,39 @@ def run_vl_on_languages(Learner, grammar_ids, num_learners, num_sentences, domai
 def main():
     """ Runs 100 simulations on all 3 learner types for 50,000 sentences in 4 different languages """
     domain = Colag.default()
-    for learner in [RewardOnlyLearner, RewardOnlyRelevantLearner, SkepticalRewardOnlyLearner]:
-        results = run_vl_on_languages(learner,
+    with open("learner_results.csv", "wb") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+              'Type of Learner',
+              'Grammar ID',
+              'Number of Sentences',
+              'Learner Number',
+              'Domain',
+              'sp',
+              'hip',
+              'hcp',
+              'opt',
+              'ns',
+              'nt',
+              'whm',
+              'pi',
+              'tm',
+              'VtoI',
+              'ItoC',
+              'ah',
+              'QInv',
+              '',
+              'Time Stamp'])
+        for learner in [RewardOnlyLearner, RewardOnlyRelevantLearner, SkepticalRewardOnlyLearner]:
+            results = run_vl_on_languages(learner,
                                       grammar_ids=[611, 3856, 2253, 584],
                                       num_learners=100,
                                       num_sentences=50000,
                                       domain=domain)
-        for result in results:
-            result = [learner.__name__] + result
-            print('\t'.join(map(str, result)))
+            for result in results:
+                result = [learner.__name__] + result
+                writer.writerow(result)
+            #print('\t'.join(map(str, result)))
 
 if __name__ == "__main__":
     main()
