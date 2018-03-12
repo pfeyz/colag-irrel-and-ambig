@@ -4,6 +4,7 @@ import random
 import warnings
 from itertools import repeat
 from collections import Counter
+from sets import Set
 
 try:
     import numpy as np
@@ -143,6 +144,18 @@ class Colag:
 
     def legal_grammar(self, g):
         return g in self.language
+    
+    def find_supersets(self, g):
+        sgp = self.language[g] #set of sentences g produces
+        sets_of_the_grammars_sgp_is_produced_by = [] #the set of grammers that each sentence in sgp is produced by
+        for i in sgp:
+            sets_of_the_grammars_sgp_is_produced_by.append(self.sentences[i])
+        u = set.intersection(*sets_of_the_grammars_sgp_is_produced_by) #intersection of all the sets produced by the lang
+        u.remove(g)
+        return u
+        
+
+            
 
     def grammar_sent_distance(self, g1, g2):
         return 1 - jaccard_coef(self.grammars[g1], self.grammars[g2])
