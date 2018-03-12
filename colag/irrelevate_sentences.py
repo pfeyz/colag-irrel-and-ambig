@@ -2,19 +2,16 @@ from colag import Colag
 
 NUM_PARAMS = 13
 
-def get_param_value(index, grammar):
-    """Return the status (0 or 1) of parameter number `index` in `grammar`,
-    zero-indexed.
+def get_param_value(param, grammar):
+    """Return the status (0 or 1) of parameter number `param` in `grammar`,
+    zero-paramed.
 
-    >>> get_param_value(2, int('0100', 2))
-    1
-
-    >>> get_param_value(2, int('0100', 3))
-    0
+    param=12 -> the 0th bit
+    param=0 -> the 12th bit
 
     """
 
-    return int(bool((1 << index) & grammar))
+    return int(bool((1 << (NUM_PARAMS - param -1)) & grammar))
 
 def toggled(param, grammar):
     """ Returns grammar with parameter number `parameter` toggled
@@ -24,7 +21,7 @@ def toggled(param, grammar):
     >>> "{0:b}".format(t)
     '1100'
     """
-    return grammar ^ (1 << param)
+    return grammar ^ (1 << (NUM_PARAMS - param - 1))
 
 def mark_unambiguous_params(colag, sentence):
     """Returns a 13-item list of strings, each item either 0, 1 or ~.
@@ -69,9 +66,6 @@ def main():
 
     for sentence in sorted(colag.sentences):
         irr_str = mark_irrelevant_params(colag, sentence)
-        # reverse the order of the str. the first parameter should be the first
-        # *bit* in the number, not the first char in the str.
-        irr_str = irr_str[::-1]
         print sentence, ''.join(irr_str)
 
 
