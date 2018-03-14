@@ -4,7 +4,6 @@ import random
 import warnings
 from itertools import repeat
 from collections import Counter
-from sets import Set
 
 try:
     import numpy as np
@@ -144,18 +143,29 @@ class Colag:
 
     def legal_grammar(self, g):
         return g in self.language
-    
-    def find_supersets(self, g):
+
+    def find_supersets(self, g, cache={}):
+        if g in cache:
+            return cache[g]
         sgp = self.language[g] #set of sentences g produces
         sets_of_the_grammars_sgp_is_produced_by = [] #the set of grammers that each sentence in sgp is produced by
         for i in sgp:
             sets_of_the_grammars_sgp_is_produced_by.append(self.sentences[i])
         u = set.intersection(*sets_of_the_grammars_sgp_is_produced_by) #intersection of all the sets produced by the lang
         u.remove(g)
+        cache[g] = u
         return u
-        
 
-            
+    def find_equivalent(self, grammar, cache={}):
+        if grammar in cache:
+            return cache[grammar]
+
+        lang = self.language[grammar]
+        u = [g for g in self.language
+                 if lang == self.language[g] and g != grammar]
+
+        cache[grammar] = u
+        return u
 
     def grammar_sent_distance(self, g1, g2):
         return 1 - jaccard_coef(self.grammars[g1], self.grammars[g2])
@@ -201,6 +211,17 @@ def grammar_trigger_vectors_stdout():
     for row in grammar_trigger_vectors():
         print(', '.join(str(x) for x in row))
 
+def all_equivalent_grammars():
+    colag = Colag.default()
+    for grammar in colag.language:
+        print('{}, {}'.format(grammar, ', '.join(map(str, colag.find_equivalent(grammar)))))
+
+def all_supersets():
+    colag = Colag.default()
+    for grammar in colag.language:
+        print('{}, {}'.format(grammar, ', '.join(map(str, colag.find_supersets(grammar)))))
+
+
 def main():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
@@ -213,6 +234,14 @@ def main():
     trigger = subparsers.add_parser('trigger',
                           help=""" Output the trigger vector for every grammar in colag. """)
     trigger.set_defaults(func=grammar_trigger_vectors_stdout)
+
+    all_equiv = subparsers.add_parser('all_equiv',
+                          help=""" For every language in the domain, output all its weakly equivalent languages """)
+    all_equiv.set_defaults(func=all_equivalent_grammars)
+
+    all_supers = subparsers.add_parser('all_supers',
+                          help=""" For every language in the domain, output all its superset languages """)
+    all_supers.set_defaults(func=all_supersets)
 
     args = parser.parse_args()
 

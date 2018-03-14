@@ -61,12 +61,51 @@ def mark_irrelevant_params(colag, sentence):
                 break
     return relstr
 
+def mark_irrelevant_params_ignore_weakly_equiv(colag, sentence):
+    """Returns 13-item list containing 0, 1, ~ or *"""
+    relstr = mark_unambiguous_params(colag, sentence)
+    for param, val in enumerate(relstr):
+        assert val in ['~', '0', '1'], val
+        if val != '~':
+            continue
+        generators = colag.sentences[sentence]
+        for generator in generators:
+            minimal_pair = toggled(param, generator)
+            # TODO: is this "and" correct?
+            supersets = colag.find_equivalent(generator)
+            gens = [g for g in generators
+                        if g not in supersets]
+            if minimal_pair not in gens and colag.legal_grammar(minimal_pair):
+                relstr[param] = '*'
+                break
+    return relstr
+
+
+def mark_irrelevant_params_ignore_supersets(colag, sentence):
+    """Returns 13-item list containing 0, 1, ~ or *"""
+    relstr = mark_unambiguous_params(colag, sentence)
+    for param, val in enumerate(relstr):
+        assert val in ['~', '0', '1'], val
+        if val != '~':
+            continue
+        generators = colag.sentences[sentence]
+        for generator in generators:
+            minimal_pair = toggled(param, generator)
+            # TODO: is this "and" correct?
+            supersets = colag.find_supersets(generator)
+            gens = [g for g in generators
+                        if g not in supersets]
+            if minimal_pair not in gens and colag.legal_grammar(minimal_pair):
+                relstr[param] = '*'
+                break
+    return relstr
+
 def main():
     colag = Colag.default()
 
     for sentence in sorted(colag.sentences):
-        irr_str = mark_irrelevant_params(colag, sentence)
-        print sentence, ''.join(irr_str)
+        irr_str = mark_irrelevant_params_ignore_weakly_equiv(colag, sentence)
+        print(sentence, ''.join(irr_str))
 
 
 if __name__ == '__main__':

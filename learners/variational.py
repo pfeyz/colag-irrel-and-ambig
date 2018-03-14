@@ -52,7 +52,7 @@ class VariationalLearner:
     one and defines `reward` and `punish` methods which update the parameter
     weights.
     """
-    def __init__(self, domain, learning_rate=.0005):
+    def __init__(self, domain, learning_rate=.001):
         """Args:
 
         - domain: an object representing the Colag domain. it should
@@ -109,7 +109,7 @@ class VariationalLearner:
         `threshold` away from 0 or 1.
         """
         for w in self.weights:
-            if not (1 - w < threshold) or (w < threshold):
+            if (w > threshold) and (w < 1 - threshold):
                 return False
         return True
 
@@ -240,17 +240,18 @@ def run_vl_on_languages(Learner, grammar_ids, num_learners, num_sentences, domai
             result += ['', runtime]
             yield result
 
-def main():
+def run_sim(name, irrel_tsv):
     """ Runs 100 simulations on all 3 learner types for 50,000 sentences in 4 different languages """
-    domain = Colag.default()
-    with open("learner_results.csv", "wb") as f:
+    COLAG_TSV = './data/COLAG_2011_ids.txt'
+    domain = Colag.from_tsvs(COLAG_TSV, irrel_tsv)
+    with open("learner_results.csv", "ab") as f:
         writer = csv.writer(f)
         writer.writerow([
               'Type of Learner',
               'Grammar ID',
-              'Number of Sentences',
               'Learner Number',
-              'Domain',
+              'Number of Sentences',
+              'Hypothesis',
               'sp',
               'hip',
               'hcp',
@@ -266,16 +267,27 @@ def main():
               'QInv',
               '',
               'Time Stamp'])
-        for learner in [RewardOnlyLearner, RewardOnlyRelevantLearner, SkepticalRewardOnlyLearner]:
+        then = datetime.now()
+        learners = [RewardOnlyRelevantLearner]
+        if name == 'normal':
+            learners.append(RewardOnlyLearner)
+        for learner in learners:
             results = run_vl_on_languages(learner,
                                       grammar_ids=[611, 3856, 2253, 584],
                                       num_learners=100,
-                                      num_sentences=50000,
+                                      num_sentences=5000000,
                                       domain=domain)
-            for result in results:
+            for n, result in enumerate(results):
                 result = [learner.__name__] + result
+                print(learner.__name__, n, result[-1].total_seconds())
                 writer.writerow(result)
-            #print('\t'.join(map(str, result)))
+        print((datetime.now() - then).total_seconds())
 
+def main():
+    for name, tsv in [
+            ('normal', './data/irrelevance-output.txt'),
+            ('equiv', './data/irrelevance-output-no-equiv.txt'),
+            ('superset', './data/irrelevance-output-no-superset.txt')]:
+        run_sim(name, tsv)
 if __name__ == "__main__":
     main()
