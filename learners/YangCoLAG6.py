@@ -6,7 +6,7 @@
 # Yang's Variational Learner (adapted from Sakas 2015)
 # Given:
 # 1)      n, the number of parameters
-# 2)      W=(w1, w2, . . . , wn), a vector of weights, 
+# 2)      W=(w1, w2, . . . , wn), a vector of weights,
 #           where each wi is stipulated to be between 0 and 1
 # 3)      the current grammar (i.e., a vector of parameter values):
 #            Gcurr =(p1, p2,  . . . , pn),
@@ -14,10 +14,10 @@
 
 ##  Pseudo-code#
 #	For each wi in W, set wi to 0.5
-#	For each randomly chosen input sentence s from the target language: 
+#	For each randomly chosen input sentence s from the target language:
 #	   For each parameter pi in Gcurr :
 #            a. with probability wi , choose the value of pi to be 1;
-#            b. with probability 1 - wi , choose the value of pi to be 0 ; 
+#            b. with probability 1 - wi , choose the value of pi to be 0 ;
 #	Parse s with Gcurr
 #	If s can be parsed by Gcurr, "reward" the weights in W accordingly.
 
@@ -25,7 +25,7 @@
 ################ Yang Reward-only Learner aligned with code below ###########################
 #
 # 1)    set all elements of Wcurr to .5 (Wcurr is the W in above Pseudo-code)
-# 2)    Gcurr = chooseBasedOn(Wcurr)  -- Choose a grammar randomly weighted by weights in Wcurr vector 
+# 2)    Gcurr = chooseBasedOn(Wcurr)  -- Choose a grammar randomly weighted by weights in Wcurr vector
 # 3)    s = chooseSentUnif() -- Choose a random sentence from the target language
 # 4)    Test if Gcurr can parse (licenses) s
 # 5)    if Gcurr can parse s, reward the system by nudging weights: Wcurr = reward(Wcurr) else do nothing
@@ -48,7 +48,7 @@ LDsents     = defaultdict(set)
 
 # a list of all valid CoLAG grammar IDs, stored as a dict for efficient lookup
 CoLAG_Gs = {} # Wm note: This should probably be a set of grammar IDs
-                        
+
 
 #################
 ### BEGIN Globals
@@ -68,9 +68,9 @@ Ltarg = [] # list of sentences (or actually sentIDs) licensed by Gtarg
 
 
 # Input file, the CoLAG Domain, 3 columns, Grammar ID, Sent ID and Structure ID
-LD_File = "/Users/Wm1/Desktop/CoLAG_Research/YangPython/COLAG_2011_ids.txt"
+LD_File = "./data/COLAG_2011_ids.txt"
 
-Out_Data_Path            = "/Users/Wm1/Desktop/CoLAG_Research/YangPython/relevance_project/"
+Out_Data_Path            = "./data/william_vl_output/"
 Out_Data_File_base       = "OUTDATA_REL"
 Out_Data_Date_Time_stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 Out_Data_File = Out_Data_Path+Out_Data_File_base+Out_Data_Date_Time_stamp+".csv"
@@ -89,25 +89,25 @@ Notes = "" # Prompt user for notes for the current run
 def setupLD() :
 
   global LDsents, LDstructs, CoLAG_Gs, Notes
- 
+
 
   File = open(LD_File,"r")
   for line in File:
     line = line.rstrip()
-   
+
     [g,       sent,   struct]    = line.split("\t")
     [grammID, sentID, structID, relString] = [int(g), int(sent), int(struct), "~~~~~~~~~~~~~"]
     # when we do relevance we need a way to load proper relevance string, the above is a dummy
-                                                                                                 
+
     # if haven't hit grammID yet in the file, add to list of CoLAG_GS and to LD
     if grammID not in CoLAG_Gs:
         CoLAG_Gs[grammID]=0
         LDsents[grammID]=set()
-    
+
     LDsents  [grammID].add(sentID) # key:int, value:set of ints
 
-   
-def reward(relevanceStr) : # current code ignores relevanceStr  
+
+def reward(relevanceStr) : # current code ignores relevanceStr
   global Wcurr, Gcurr
   for i in range(n):
 #  something like this will take relevance into account
@@ -118,21 +118,21 @@ def reward(relevanceStr) : # current code ignores relevanceStr
         Wcurr[i] -= r*Wcurr[i]
       else:
         Wcurr[i] += r*(1.0-Wcurr[i])
-        
+
 def converged():
   global Wcurr
   for i in range(n):
-    if not (1-Wcurr[i] <  threshold  or Wcurr[i] < threshold): 
+    if not (1-Wcurr[i] <  threshold  or Wcurr[i] < threshold):
       return False
   return True
 
 #def converged(): We may add something like below for sub/super and other problem parameters
 #  global Wcurr
 #  for i in range(5):
-#    if not (1-Wcurr[i] <  threshold  or Wcurr[i] < threshold): 
+#    if not (1-Wcurr[i] <  threshold  or Wcurr[i] < threshold):
 #      return False
 #  for i in range(7,n):
-#    if not (1-Wcurr[i] <  threshold  or Wcurr[i] < threshold): 
+#    if not (1-Wcurr[i] <  threshold  or Wcurr[i] < threshold):
 #      return False
 #  return True
 
@@ -153,15 +153,15 @@ def chooseGrammarBasedOn(weights):
 #            Gtmp+="1"
 #        elif i == 3:
 #            Gtmp+="1"
-#        else:  
+#        else:
         x = random.random()
         if x < weights[i]: # checked against Charles code
             Gtmp+="1" # probably more efficient to declare static Gtmp and not append
         else:
             Gtmp+="0"
     return Gtmp
- 
-def chooseSentUnif():  
+
+def chooseSentUnif():
     #UNIFORM
     x = random.randint(0,len(Ltarg)-1)
     sID = Ltarg[x]
@@ -171,11 +171,11 @@ def bin2Dec(bList): # bList is a list of 1's and 0's
     binStr = ""
     for b in bList:
         binStr += str(b)
-    return int(binStr,2)     
- 
+    return int(binStr,2)
+
 def headerOutput(File, NotesP):
     headerstr = "Learning rate:" + str(r) + ", Threshold:" + str(threshold) + ", Note: " + NotesP + "\n"
-    File.write(headerstr) 
+    File.write(headerstr)
 
 def csvOutput(File, targ, run, cnt, G, W):
     Gout =""
@@ -205,28 +205,28 @@ def run():
     print "Working ..."
 
     headerOutput(OUTDATA, Notes)
-    
+
     setupLD() # sets up all 3072 potential target grammars/languages
               # into global LD variables
-  
+
     # CoLAG English, Japanese, German and French
     GTARGS =  [ [0,0,0,1,0,0,1,1,0,0,0,1,1] ,  \
                 [0,1,1,1,1,0,0,0,1,0,0,0,0] ,  \
                 [0,1,0,0,0,1,1,0,0,1,1,0,1] ,  \
                 [0,0,0,1,0,0,1,0,0,1,0,0,0]    \
-              ]  
-                
+              ]
+
     GTARGIDS = [611, 3856, 2253, 584]
-    
+
     global Ltarg
 
     for targIdx in range(1): # only Enlgish
-        
+
         Gtarg   = GTARGS[targIdx]       # Gtarg is a 13 element list of 0's and 1's
         GtargID = GTARGIDS[targIdx]     # GtargID is a decimal representation of Gtarg
         Ltarg   = list(LDsents[GtargID]) # Ltarg is a list of sentIDs
 
-        overallStart = datetime.datetime.now()    
+        overallStart = datetime.datetime.now()
         print "Running ..."
 
         for runNum in range(trials):
@@ -235,9 +235,9 @@ def run():
           Wcurr = [.5 for i in range(n)] # initialize weights to 0.5
 
           Gcurr = ""
-          
+
           numSents = 0
-          
+
           CONVERGED = False
 
           while not CONVERGED and numSents < max_sents:
@@ -258,10 +258,10 @@ def run():
 
 
               # if s can be parsed by Gcurr
-              if s in LDsents[GcurrID]: # LD[GcurrID] is a set of sentIDs 
-                  
+              if s in LDsents[GcurrID]: # LD[GcurrID] is a set of sentIDs
+
                   # grab relevance string of s
-                  relevanceStr = "~~~~~~~~~~~~~" # dummy stringtes 
+                  relevanceStr = "~~~~~~~~~~~~~" # dummy stringtes
                   #   picks a parse tree that generates s given Gcurr
                   #   the 'parser' returns a string indicating which parameters were irrelevant
                   #   in terms of building the parse tree
@@ -270,23 +270,22 @@ def run():
               else:
                   pass # print "GcurrID: ", GcurrID
 
-                  
 
-              CONVERGED = converged()       
 
-          csvOutput(OUTDATA, GtargID, runNum, numSents, Gcurr , Wcurr)      
+              CONVERGED = converged()
+
+          csvOutput(OUTDATA, GtargID, runNum, numSents, Gcurr , Wcurr)
 
           end = datetime.datetime.now()
           elapsed = end - start
-          overallElapsed = end - overallStart 
+          overallElapsed = end - overallStart
           if runNum % 1 == 0:
             print "GtargID: ", GtargID, "RUN: ", runNum, "took", str(elapsed), "Overall so far: ", overallElapsed
 
 
 run()
 
-   
+
 OUTDATA.close()
 
 print "Done."
-
