@@ -55,10 +55,10 @@ CoLAG_Gs = {} # Wm note: This should probably be a set of grammar IDs
 #################
 
 n = 13 # number of parameters
-r = .0005  # learning rate
+r = .001  # learning rate
 
-trials = 10 # number of simulated learning trials to run
-max_sents =  50000 # max number of sents before ending a trial
+trials = 100 # number of simulated learning trials to run
+max_sents =  2000000 # max number of sents before ending a trial
 threshold = .02 # when all weights are within a threshold, stop
 
 Wcurr = [] # current weights
